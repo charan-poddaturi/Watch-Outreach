@@ -1,0 +1,38 @@
+name: Daily Watch Outreach
+
+on:
+  workflow_dispatch: # Lets you trigger it manually from your phone anytime
+  schedule:
+    - cron: '30 3 * * *' # Runs automatically every day at 9:00 AM IST
+
+permissions:
+  contents: write # Needed to save sent_log.txt after each run
+
+jobs:
+  send-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install google-genai
+
+      - name: Run drip sender
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python drip_sender.py
+
+      - name: Save sent_log.txt
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add sent_log.txt
+          git diff --staged --quiet || git commit -m "Update sent_log.txt"
+          git push
